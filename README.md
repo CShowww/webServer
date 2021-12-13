@@ -137,3 +137,29 @@ read_file_Pool = new ThreadPoolExecutor(5,8,0, TimeUnit.SECONDS,new LinkedBlocki
 write_httpResponse_Pool = new ThreadPoolExecutor(5,8,0,TimeUnit.SECONDS, new LinkedBlockingDeque<>());
 ```
 
+
+
+## PageCache
+```
+HashBucketCache:模仿哈希表的结构，包括数组加链表  
+HashTab：数组上的每一个元素（定义了链表的头节点）  
+HashPair：哈希桶，即链表上的节点  
+```
+实验五的主要逻辑是：  
+1. 首先模仿HashMap的结构，用数组加链表实现页面缓存和页面替换。
+2. 通过hash算法得到hash值，然后用这个哈希值和数组长度-1相与，得到它在数组中的位置。
+```
+    public static int hash(String key){
+        int h;
+        return (h = key.hashCode()) ^ (h >>> 16);
+    }
+```
+```
+int i=(length - 1) & hash;
+```
+3. put操作的流程和hashmap的put操作流程几乎一致，首先根据key的哈希值得到他在数组中的位置。这里有一点需要注意的是，由于本次实验的数据结构是模仿哈希表的，所以也同样在并发情况下插入节点会不安全，因此我们对put方法加锁，一次只允许一个线程操作。  
+第一种情况，如果该数组元素的头部节点为空，则创建一个HashPair来存储这个缓存，并将这个缓存节点设置为头节点。  
+第二种情况，如果当前位置的数组元素的头部节点不为空，即有缓存。如果缓存节点的长度小于规定的最大长度。我们要遍历一下这个链表判断这个页面是否已经被缓存了，如果是，则他的缓存次数加一，并将他放到链表尾部，便于后续的页面置换操作；如果没有这个页面缓存，则将它插入到链表尾部，并将链表长度加一。  
+第三种情况，如果当前位置的数组元素的头节点不为空，并且链表长度等于设定的阈值了，此时要进行页面替换，本实验中使用LRU算法进行页面替换，即直接把头节点替换成当前页面即可。
+
+
